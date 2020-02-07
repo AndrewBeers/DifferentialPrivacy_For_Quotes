@@ -4,6 +4,7 @@ import csv
 import math
 import nltk
 import numpy as np
+import pickle
 
 from pprint import pprint
 from collections import defaultdict
@@ -15,8 +16,10 @@ class RiskEvaluator(object):
     def __init__(self):
 
         # Derived Parameters
-        self.data_filepath = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../../data/ngram_frequencies')
+        self.ngram_filepath = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../../data/ngram_frequencies')
+        self.reference_filepath = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../../data/reference_scores.pkl')
         self.ngram_data = defaultdict(dict)
+        self.reference_scores = {}
         self.highest_probability = {}
         self.lowest_probability = {}
         self.total_probability = defaultdict(float)
@@ -26,14 +29,14 @@ class RiskEvaluator(object):
 
         return
 
-    def load_dataset(self, data_filepath=None):
+    def load_dataset(self, ngram_filepath=None):
 
-        if data_filepath is None:
-            data_filepath = self.data_filepath
+        if ngram_filepath is None:
+            ngram_filepath = self.ngram_filepath
 
         for n in range(1, self.n_gram_limit + 1):
             print(f'Compiling {n} grams')
-            with open(os.path.join(data_filepath, f'count_{n}w.txt'), 'r') as readfile:
+            with open(os.path.join(ngram_filepath, f'count_{n}w.txt'), 'r') as readfile:
                 reader = csv.reader(readfile, delimiter='\t')
                 for line in reader:
                     log_probability = math.log(float(line[1]) / self.word_total)
@@ -44,6 +47,9 @@ class RiskEvaluator(object):
             self.highest_probability[n] = self.ngram_data[n][list(self.ngram_data[n].keys())[0]]
             self.lowest_probability[n] = self.ngram_data[n][list(self.ngram_data[n].keys())[-1]]
             self.probability_range[n] = [self.lowest_probability[n], self.highest_probability[n]]
+
+        with open(self.reference_filepath, 'rb') as f:
+            self.reference_scores = pickle.load(f)
 
     def evaluate_quote(self, quote):
 
@@ -68,14 +74,30 @@ class RiskEvaluator(object):
                     # Out of vocabulary.
                     probabilities[n] += [self.lowest_probability[n]]
 
+        # The dictionary indexing here is hard to read.
+        privacy_scores = [np.mean(probabilities[n]) for n in range(1, self.n_gram_limit + 1)]
+        privacy_percent = [get_reference_score(self.reference_scores[n], privacy_scores[n-1]) for n in range(1, self.n_gram_limit + 1)]
+
         # pprint(text_tokens)
         # pprint(probabilities)
         # print(self.total_probability)
-        # print(self.probability_range)
+        # pprint(self.probability_range)
+        # print(privacy_scores)
+        # print(privacy_percent)
 
-        privacy_scores = [np.mean(probabilities[n]) for n in range(1, self.n_gram_limit + 1)]
+        return privacy_scores, privacy_percent, probabilities, ngram_tokens
 
-        return privacy_scores, probabilities, ngram_tokens
+
+def get_reference_score(reference, score):
+
+    # reference = np.sort(reference)
+    # print(reference)
+    for idx, ref_score in enumerate(reference):
+        if score < ref_score:
+            # print(idx, len(reference), ref_score, score)
+            return 1 - idx / len(reference)
+
+    return 0
 
 
 def get_ngrams(input_list, n):
