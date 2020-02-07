@@ -1,1 +1,1 @@
-web: gunicorn run_application:private-quotes
+web: gunicorn run_application:app
