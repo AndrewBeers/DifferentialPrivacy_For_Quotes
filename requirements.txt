@@ -23,7 +23,7 @@ numpy==1.17.4
 opencv-python==4.1.2.30
 pandas==0.22.0
 patsy==0.5.1
-Pillow==7.0.0
+Pillow==8.2.0
 -e git+https://github.com/AndrewBeers/DifferentialPrivacy_For_Quotes@c2a04a5ad56196ea81fa289c78d26f3a8749c7eb#egg=private_quotes
 pyparsing==2.4.6
 python-dateutil==2.8.1
