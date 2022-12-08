@@ -1,6 +1,6 @@
 addict==2.2.1
 appdirs==1.4.3
-certifi==2019.11.28
+certifi==2022.12.7
 Click==7.0
 colour==0.1.5
 cycler==0.10.0
